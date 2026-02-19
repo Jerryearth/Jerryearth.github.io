@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>高考资料下载中心</title>
+  <style>
+    body { font-family: Arial; }
+    h2 { margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+<h1>📚 高考资料下载中心</h1>
+<div id="content"></div>
+
+<script>
+const user = "jerryearth";
+const repo = "jerryearth.github.io";
+
+async function loadDir(path, container) {
+  const response = await fetch(
+    `https://api.github.com/repos/${user}/${repo}/contents/${path}`
+  );
+  const data = await response.json();
+
+  for (const item of data) {
+    if (item.type === "dir") {
+      const section = document.createElement("div");
+      section.innerHTML = `<h2>📂 ${item.name}</h2>`;
+      container.appendChild(section);
+      await loadDir(item.path, section);
+    } 
+    else if (item.name.endsWith(".pdf")) {
+      const link = document.createElement("p");
+      link.innerHTML = `📄 <a href="${item.download_url}" target="_blank">${item.name}</a>`;
+      container.appendChild(link);
+    }
+  }
+}
+
+loadDir("", document.getElementById("content"));
+</script>
+
+</body>
+</html>
