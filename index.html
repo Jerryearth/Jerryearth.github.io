@@ -5,9 +5,9 @@
 <title>高考资料下载中心</title>
 <style>
   body { font-family: Arial; }
-  ul { list-style-type: none; padding-left: 20px; }
-  li { margin: 4px 0; cursor: pointer; }
-  .folder { font-weight: bold; }
+  ul { list-style: none; padding-left: 20px; }
+  li { margin: 4px 0; }
+  .folder { cursor: pointer; font-weight: bold; }
   .hidden { display: none; }
 </style>
 </head>
@@ -20,45 +20,59 @@
 const user = "jerryearth";
 const repo = "jerryearth.github.io";
 
-async function loadDir(path, parentElement) {
-  const response = await fetch(
+async function fetchAll(path = "") {
+  const res = await fetch(
     `https://api.github.com/repos/${user}/${repo}/contents/${path}`
   );
-  const data = await response.json();
+  const data = await res.json();
 
-  const ul = document.createElement("ul");
-  parentElement.appendChild(ul);
+  let result = [];
 
   for (const item of data) {
+    if (item.type === "dir") {
+      const children = await fetchAll(item.path);
+      result.push({ type: "dir", name: item.name, children });
+    } 
+    else if (item.name.endsWith(".pdf")) {
+      result.push({ type: "file", name: item.name, url: item.download_url });
+    }
+  }
+  return result;
+}
+
+function renderTree(data, container) {
+  const ul = document.createElement("ul");
+  container.appendChild(ul);
+
+  data.forEach(item => {
     const li = document.createElement("li");
 
     if (item.type === "dir") {
-      li.innerHTML = "📂 " + item.name;
+      li.textContent = "📂 " + item.name;
       li.classList.add("folder");
 
-      const subContainer = document.createElement("div");
-      subContainer.classList.add("hidden");
+      const subDiv = document.createElement("div");
+      subDiv.classList.add("hidden");
 
-      li.onclick = async function(e) {
-        e.stopPropagation();
-        if (subContainer.innerHTML === "") {
-          await loadDir(item.path, subContainer);
-        }
-        subContainer.classList.toggle("hidden");
+      li.onclick = () => {
+        subDiv.classList.toggle("hidden");
       };
 
       ul.appendChild(li);
-      ul.appendChild(subContainer);
-    }
+      ul.appendChild(subDiv);
 
-    else if (item.name.endsWith(".pdf")) {
-      li.innerHTML = `📄 <a href="${item.download_url}" target="_blank">${item.name}</a>`;
+      renderTree(item.children, subDiv);
+    } 
+    else {
+      li.innerHTML = `📄 <a href="${item.url}" target="_blank">${item.name}</a>`;
       ul.appendChild(li);
     }
-  }
+  });
 }
 
-loadDir("", document.getElementById("tree"));
+fetchAll().then(data => {
+  renderTree(data, document.getElementById("tree"));
+});
 </script>
 
 </body>
