@@ -1,44 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>高考资料下载中心</title>
-  <style>
-    body { font-family: Arial; }
-    h2 { margin-top: 30px; }
-  </style>
+<meta charset="UTF-8">
+<title>高考资料下载中心</title>
+<style>
+  body { font-family: Arial; }
+  ul { list-style-type: none; padding-left: 20px; }
+  li { margin: 4px 0; cursor: pointer; }
+  .folder { font-weight: bold; }
+  .hidden { display: none; }
+</style>
 </head>
 <body>
 
 <h1>📚 高考资料下载中心</h1>
-<div id="content"></div>
+<div id="tree"></div>
 
 <script>
 const user = "jerryearth";
 const repo = "jerryearth.github.io";
 
-async function loadDir(path, container) {
+async function loadDir(path, parentElement) {
   const response = await fetch(
     `https://api.github.com/repos/${user}/${repo}/contents/${path}`
   );
   const data = await response.json();
 
+  const ul = document.createElement("ul");
+  parentElement.appendChild(ul);
+
   for (const item of data) {
+    const li = document.createElement("li");
+
     if (item.type === "dir") {
-      const section = document.createElement("div");
-      section.innerHTML = `<h2>📂 ${item.name}</h2>`;
-      container.appendChild(section);
-      await loadDir(item.path, section);
-    } 
+      li.innerHTML = "📂 " + item.name;
+      li.classList.add("folder");
+
+      const subContainer = document.createElement("div");
+      subContainer.classList.add("hidden");
+
+      li.onclick = async function(e) {
+        e.stopPropagation();
+        if (subContainer.innerHTML === "") {
+          await loadDir(item.path, subContainer);
+        }
+        subContainer.classList.toggle("hidden");
+      };
+
+      ul.appendChild(li);
+      ul.appendChild(subContainer);
+    }
+
     else if (item.name.endsWith(".pdf")) {
-      const link = document.createElement("p");
-      link.innerHTML = `📄 <a href="${item.download_url}" target="_blank">${item.name}</a>`;
-      container.appendChild(link);
+      li.innerHTML = `📄 <a href="${item.download_url}" target="_blank">${item.name}</a>`;
+      ul.appendChild(li);
     }
   }
 }
 
-loadDir("", document.getElementById("content"));
+loadDir("", document.getElementById("tree"));
 </script>
 
 </body>
